@@ -223,10 +223,12 @@ const Chat = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
+    localStorage.removeItem("authToken"); // was accessToken
+    localStorage.removeItem("user");
     socketRef.current?.disconnect();
     navigate('/login');
   };
+  
 
   return (
     <div className="flex h-screen bg-gray-50">
