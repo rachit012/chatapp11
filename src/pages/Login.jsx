@@ -9,42 +9,41 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [checkingToken, setCheckingToken] = useState(true); // ✅ New state
 
   const navigate = useNavigate();
 
-  // ✅ Redirect if already logged in (run only once on mount)
-  // useEffect(() => {
-  //   const token = localStorage.getItem("authToken");
-  //   if (token) {
-  //     navigate("/chat", { replace: true });
-  //   }
-  // }, [navigate]); // Runs only on first render
-
+  // ✅ Only run token verification
   useEffect(() => {
-  const verifyToken = async () => {
-    const token = localStorage.getItem("authToken");
-    if (!token) return;
-
-    try {
-      const res = await axios.get("http://localhost:5000/api/auth/verify", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.data?.valid) {
-        navigate("/chat", { replace: true });
+    const verifyToken = async () => {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        setCheckingToken(false);
+        return;
       }
-    } catch (err) {
-      // Token is invalid or expired
-      console.warn("Token verification failed", err);
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("user");
-    }
-  };
 
-  verifyToken();
-}, [navigate]);
+      try {
+        const res = await axios.get("http://localhost:5000/api/auth/verify", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-  
+        if (res.data?.valid) {
+          navigate("/chat", { replace: true });
+        } else {
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("user");
+          setCheckingToken(false);
+        }
+      } catch (err) {
+        console.warn("Token verification failed:", err);
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("user");
+        setCheckingToken(false);
+      }
+    };
+
+    verifyToken();
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -68,8 +67,7 @@ const Login = () => {
       if (token && user) {
         localStorage.setItem("authToken", token);
         localStorage.setItem("user", JSON.stringify(user));
-
-        navigate("/chat", { replace: true }); // ✅ safe to navigate now
+        navigate("/chat", { replace: true });
       } else {
         setError("Invalid login response from server");
       }
@@ -80,6 +78,15 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  // ✅ Show spinner while verifying token
+  if (checkingToken) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-100">
+        <p className="text-gray-600 text-lg">Checking session...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen items-center justify-center bg-gray-100">

@@ -52,7 +52,7 @@ router.post('/login', async (req, res) => {
       { expiresIn: '1d' }
     );
 
-    res.status(200).json({ token, user: { _id: user._id, username: user.username, email: user.email } });
+    res.status(200).json({ token, user: {userId: user._id, username: user.username, email: user.email } });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ message: 'Server error' });
@@ -81,20 +81,30 @@ router.get("/verify", verifyToken, (req, res) => {
 });
 
 // User Profile Route - Protected Route
+// User Profile Route - Protected Route
 router.get("/me", verifyToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password"); // exclude password
+    const user = await User.findById(req.user._id).select("-password"); // exclude password
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Generate new tokens
-    const accessToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    // Generate new tokens with consistent payload and secrets
+    const accessToken = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    const refreshToken = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: "7d" }
+    );
 
     res.json({
       accessToken,
       refreshToken,
       user: {
-        id: user._id,
+        userId: user._id,
         username: user.username,
         email: user.email
       }
@@ -104,5 +114,6 @@ router.get("/me", verifyToken, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 module.exports = router;
