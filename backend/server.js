@@ -52,14 +52,13 @@ io.on('connection', (socket) => {
     try {
       const message = new Message({
         sender: socket.userId,
-        receiver,
-        text
+        receiver: receiver,
+        text: text
       });
-
+  
       const savedMessage = await message.save();
-
-      // Emit to sender and receiver
-      io.to(socket.userId).emit('newMessage', savedMessage);
+  
+      // Only emit to the receiver, not back to sender
       io.to(receiver).emit('newMessage', savedMessage);
       
     } catch (err) {
